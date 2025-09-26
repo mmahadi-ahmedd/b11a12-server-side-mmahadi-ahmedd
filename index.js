@@ -42,6 +42,28 @@ async function run() {
 
         const db = client.db("harvestDB"); // use your DB name
         const charityRequests = db.collection("charityRequests");
+        const usersCollection = db.collection('users');
+
+
+
+        // Users  API
+
+        app.post('/users', async(req,res)=>{
+            const email = req.body.email;
+            const userExists = await usersCollection.findOne({email})
+            if(userExists){
+                return res.status(200).send({message: 'User already exists', 
+                    inserted:false
+                });
+            }
+            const user = req.body;
+            const result = await usersCollection.insertOne(user);
+            res.send(result);
+
+        })
+
+
+
 
         // --- Save charity request ---
         app.post("/api/charity-requests", async (req, res) => {
