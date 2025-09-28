@@ -325,6 +325,41 @@ async function run() {
             }
         });
 
+        // 📌 Get all verified donations (for admin to feature)
+        app.get("/api/verified-donations", async (req, res) => {
+            try {
+                const donations = await donationsCollection.find({ status: "Verified" }).toArray();
+                res.send(donations);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to fetch verified donations", error: err });
+            }
+        });
+
+        // 📌 Mark a donation as Featured
+        app.patch("/api/donations/feature/:id", async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await donationsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { featured: true } }
+                );
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to feature donation", error: err });
+            }
+        });
+
+
+        // 📌 Get featured donations (for Home page)
+        app.get("/api/featured-donations", async (req, res) => {
+            try {
+                const featured = await donationsCollection.find({ featured: true, status: "Verified" }).toArray();
+                res.send(featured);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to fetch featured donations", error: err });
+            }
+        });
+
 
 
 
