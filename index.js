@@ -72,19 +72,31 @@ async function run() {
             try {
                 const decoded = await admin.auth().verifyIdToken(token);
                 req.decoded = decoded;
-                 next();
+                next();
             }
-            catch(error){
+            catch (error) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
 
 
-           
+
         }
 
 
 
         // Users  API
+
+
+        // 📌 Get all users
+        app.get("/api/users", async (req, res) => {
+            try {
+                const users = await usersCollection.find().toArray();
+                res.send(users);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to fetch users", error: err });
+            }
+        });
+
 
         app.post('/users', async (req, res) => {
             const email = req.body.email;
@@ -124,6 +136,18 @@ async function run() {
                 console.error(err);
                 res.status(500).json({ message: "Server error" });
             }
+        });
+
+
+
+        // 📌 Make Charity
+        app.patch("/api/users/:id/make-charity", async (req, res) => {
+            const id = req.params.id;
+            const result = await usersCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { role: "Charity" } }
+            );
+            res.send(result);
         });
 
         // --- Get all charity requests (for admin) ---
@@ -173,9 +197,16 @@ async function run() {
 
 
         // 🟢 Get a charity profile by email
-        app.get("/api/charity/:email", async (req, res) => {
+        app.get("/api/charity/:email", verifyFBToken, async (req, res) => {
             try {
                 const email = req.params.email;
+                if (req.decoded.email !== email) {
+                    return res.status(403).send({
+                        message: 'forbidden access'
+                    })
+                }
+
+
                 const charity = await charityRequests.findOne({ email, status: "Approved" });
                 if (!charity) {
                     return res.status(404).json({ message: "Charity not found or not approved yet" });
@@ -185,6 +216,17 @@ async function run() {
                 console.error("❌ Error fetching charity profile:", err);
                 res.status(500).json({ message: "Server error", error: err.message });
             }
+        });
+
+
+        // 📌 Make Admin
+        app.patch("/api/users/:id/make-admin", async (req, res) => {
+            const id = req.params.id;
+            const result = await usersCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { role: "Admin" } }
+            );
+            res.send(result);
         });
 
         // (optional) Admin: get all charities
@@ -203,6 +245,31 @@ async function run() {
 
 
 
+        // Restaurent APIs
+
+        // 📌 Make Restaurant
+        app.patch("/api/users/:id/make-restaurant", async (req, res) => {
+            const id = req.params.id;
+            const result = await usersCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { role: "Restaurant" } }
+            );
+            res.send(result);
+        });
+
+
+
+
+        // User APIS
+
+
+        // 📌 Delete User
+        app.delete("/api/users/:id", async (req, res) => {
+            const id = req.params.id;
+            const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        });
+
         // --- Get requests by email (for user dashboard) ---
         app.get("/api/charity-requests/:email", async (req, res) => {
             try {
@@ -212,6 +279,17 @@ async function run() {
             } catch (err) {
                 console.error(err);
                 res.status(500).json({ message: "Server error" });
+            }
+        });
+
+        // 📌 Get single user by email
+        app.get("/api/users/:email", async (req, res) => {
+            const email = req.params.email;
+            try {
+                const user = await usersCollection.findOne({ email: email });
+                res.send(user);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to fetch user", error: err });
             }
         });
 
