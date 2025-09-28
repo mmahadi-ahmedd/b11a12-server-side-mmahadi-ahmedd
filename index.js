@@ -296,6 +296,36 @@ async function run() {
         });
 
 
+        // 📌 Verify a donation
+        app.patch("/api/donations/verify/:id", async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await donationsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status: "Verified" } }
+                );
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to verify donation", error: err });
+            }
+        });
+
+
+        // 📌 Reject a donation
+        app.patch("/api/donations/reject/:id", async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await donationsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status: "Rejected" } }
+                );
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to reject donation", error: err });
+            }
+        });
+
+
 
 
         // User APIS
