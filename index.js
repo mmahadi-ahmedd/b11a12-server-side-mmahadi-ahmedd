@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const admin = require("firebase-admin");
 
 
@@ -54,6 +54,7 @@ async function run() {
         const db = client.db("harvestDB"); // use your DB name
         const charityRequests = db.collection("charityRequests");
         const usersCollection = db.collection('users');
+        const donationsCollection = db.collection("donations");
 
 
 
@@ -255,6 +256,31 @@ async function run() {
                 { $set: { role: "Restaurant" } }
             );
             res.send(result);
+        });
+
+
+        // 📌 Add Donation (Restaurant)
+        app.post("/api/donations", async (req, res) => {
+            try {
+                const donation = req.body;
+                donation.status = "Pending"; // default status
+                donation.createdAt = new Date();
+
+                const result = await donationsCollection.insertOne(donation);
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to add donation", error: err });
+            }
+        });
+
+        // 📌 Get all donations (for verification / admin etc.)
+        app.get("/api/donations", async (req, res) => {
+            try {
+                const donations = await donationsCollection.find().toArray();
+                res.send(donations);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to fetch donations", error: err });
+            }
         });
 
 
