@@ -284,6 +284,18 @@ async function run() {
         });
 
 
+        // 📌 Get all donations by restaurant email
+        app.get("/api/my-donations/:email", async (req, res) => {
+            try {
+                const email = req.params.email;
+                const donations = await donationsCollection.find({ restaurantEmail: email }).toArray();
+                res.send(donations);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to fetch donations", error: err });
+            }
+        });
+
+
 
 
         // User APIS
