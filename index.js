@@ -128,6 +128,7 @@ async function run() {
                     organizationName,
                     mission,
                     amount,
+                    paymentStatus: "Unpaid",
                     status: "Pending",
                     createdAt: new Date()
                 };
@@ -159,6 +160,37 @@ async function run() {
             } catch (err) {
                 console.error(err);
                 res.status(500).json({ message: "Server error" });
+            }
+        });
+
+
+
+        // GET existing request for a user
+        app.get("/api/charity-requests/:email", async (req, res) => {
+            const email = req.params.email;
+            const request = await charityRequests.findOne({ email });
+            if (!request) {
+                return res.status(404).json({ message: "No request found" });
+            }
+            res.json(request);
+        });
+
+
+        // 🔹 Get charity request by ID
+        app.get("/api/charityrequests/:id", async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+                const request = await charityRequests.findOne(query);
+
+                if (!request) {
+                    return res.status(404).json({ message: "Charity request not found" });
+                }
+
+                res.json(request);
+            } catch (error) {
+                console.error("Error fetching charity request:", error);
+                res.status(500).json({ message: "Internal server error" });
             }
         });
 
