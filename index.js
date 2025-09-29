@@ -7,6 +7,8 @@ const admin = require("firebase-admin");
 
 dotenv.config();
 
+const stripe = require('stripe')(process.env.PAYMENT_GATEWAY_KEY)
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -427,6 +429,37 @@ async function run() {
                 res.status(500).send({ message: "Failed to fetch user", error: err });
             }
         });
+
+
+
+
+
+
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const amountInCents = req.body.amountInCents
+
+
+            try {
+                const paymentIntent = await stripe.paymentIntents.create(
+                    {
+                        amount: amountInCents,
+                        currency: 'usd',
+                        payment_method_types: ['card'],
+                    }
+                );
+                res.json({ clientSecret: paymentIntent.client_secret });
+
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message })
+            }
+        });
+
+
+
+
+
 
         console.log("✅ MongoDB connected & API routes ready");
     } catch (err) {
