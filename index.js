@@ -416,7 +416,7 @@ async function run() {
 
                 // Prevent duplicate requests
                 const existingRequest = await requestsCollection.findOne({
-                    donationId,
+                    donationId: new ObjectId(donationId),
                     charityEmail,
                 });
 
@@ -425,7 +425,7 @@ async function run() {
                 }
 
                 const request = {
-                    donationId,
+                     donationId: new ObjectId(donationId),
                     charityName,
                     charityEmail,
                     description,
@@ -449,10 +449,15 @@ async function run() {
                 const donationId = req.params.id;
                 const { userEmail } = req.body;
 
-                const exists = await favoritesCollection.findOne({ donationId, userEmail });
+                const exists = await favoritesCollection.findOne({ 
+                    donationId: new ObjectId(donationId),
+                     userEmail });
                 if (exists) return res.status(400).send({ message: "Already in favorites" });
 
-                await favoritesCollection.insertOne({ donationId, userEmail, createdAt: new Date() });
+                await favoritesCollection.insertOne({
+                      donationId: new ObjectId(donationId), 
+                     userEmail, 
+                     createdAt: new Date() });
                 res.send({ message: "Added to favorites" });
             } catch (err) {
                 res.status(500).send({ message: "Error adding favorite", error: err });
@@ -467,7 +472,7 @@ async function run() {
                 const { reviewerName, reviewerEmail, description, rating } = req.body;
 
                 const review = {
-                    donationId,
+                     donationId: new ObjectId(donationId),
                     reviewerName,
                     reviewerEmail,
                     description,
@@ -487,7 +492,9 @@ async function run() {
         app.get("/api/donations/:id/reviews", async (req, res) => {
             try {
                 const donationId = req.params.id;
-                const reviews = await reviewsCollection.find({ donationId }).sort({ createdAt: -1 }).toArray();
+                const reviews = await reviewsCollection
+                .find({ donationId: new ObjectId(donationId) })
+                .sort({ createdAt: -1 }).toArray();
                 res.send(reviews);
             } catch (err) {
                 res.status(500).send({ message: "Error fetching reviews", error: err });
