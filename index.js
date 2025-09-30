@@ -58,6 +58,10 @@ async function run() {
         const usersCollection = db.collection('users');
         const donationsCollection = db.collection("donations");
         const paymentsCollection = db.collection("payments");
+        const requestsCollection = db.collection("donationRequests"); // stores charity donation requests
+        const favoritesCollection = db.collection("favorites"); // stores user's favorite donations
+        const reviewsCollection = db.collection("reviews"); // stores reviews for donations
+
 
 
 
@@ -98,6 +102,24 @@ async function run() {
                 res.send(users);
             } catch (err) {
                 res.status(500).send({ message: "Failed to fetch users", error: err });
+            }
+        });
+
+
+        // ✅ Get a single user by email
+        app.get("/api/users/:email", async (req, res) => {
+            try {
+                const email = req.params.email;
+                const user = await usersCollection.findOne({ email });
+
+                if (!user) {
+                    return res.status(404).json({ message: "User not found" });
+                }
+
+                res.json(user);
+            } catch (error) {
+                console.error("Error fetching user:", error);
+                res.status(500).json({ message: "Server error" });
             }
         });
 
@@ -369,6 +391,113 @@ async function run() {
                 res.status(500).send({ message: "Failed to fetch verified donations", error: err });
             }
         });
+
+
+
+
+        // --- Fetch donation details by ID ---
+        app.get("/api/donations/:id", async (req, res) => {
+            try {
+                const donationId = req.params.id;
+                const donation = await donationsCollection.findOne({ _id: new ObjectId(donationId) });
+                if (!donation) return res.status(404).send({ message: "Donation not found" });
+                res.send(donation);
+            } catch (err) {
+                res.status(500).send({ message: "Error fetching donation details", error: err });
+            }
+        });
+
+
+        // --- Request a donation (Charity only) ---
+        app.post("/api/donations/:id/request", async (req, res) => {
+            try {
+                const donationId = req.params.id;
+                const { charityName, charityEmail, description, pickupTime } = req.body;
+
+                // Prevent duplicate requests
+                const existingRequest = await requestsCollection.findOne({
+                    donationId,
+                    charityEmail,
+                });
+
+                if (existingRequest) {
+                    return res.status(400).send({ message: "You have already requested this donation" });
+                }
+
+                const request = {
+                    donationId,
+                    charityName,
+                    charityEmail,
+                    description,
+                    pickupTime,
+                    status: "Pending",
+                    createdAt: new Date(),
+                };
+
+                await requestsCollection.insertOne(request);
+                res.send({ message: "Donation request submitted successfully", request });
+            } catch (err) {
+                res.status(500).send({ message: "Error submitting request", error: err });
+            }
+        });
+
+
+
+        // --- Add donation to favorites ---
+        app.post("/api/donations/:id/favorite", async (req, res) => {
+            try {
+                const donationId = req.params.id;
+                const { userEmail } = req.body;
+
+                const exists = await favoritesCollection.findOne({ donationId, userEmail });
+                if (exists) return res.status(400).send({ message: "Already in favorites" });
+
+                await favoritesCollection.insertOne({ donationId, userEmail, createdAt: new Date() });
+                res.send({ message: "Added to favorites" });
+            } catch (err) {
+                res.status(500).send({ message: "Error adding favorite", error: err });
+            }
+        });
+
+
+        // --- Add review ---
+        app.post("/api/donations/:id/review", async (req, res) => {
+            try {
+                const donationId = req.params.id;
+                const { reviewerName, reviewerEmail, description, rating } = req.body;
+
+                const review = {
+                    donationId,
+                    reviewerName,
+                    reviewerEmail,
+                    description,
+                    rating,
+                    createdAt: new Date(),
+                };
+
+                await reviewsCollection.insertOne(review);
+                res.send({ message: "Review added successfully", review });
+            } catch (err) {
+                res.status(500).send({ message: "Error adding review", error: err });
+            }
+        });
+
+
+        // --- Get all reviews for a donation ---
+        app.get("/api/donations/:id/reviews", async (req, res) => {
+            try {
+                const donationId = req.params.id;
+                const reviews = await reviewsCollection.find({ donationId }).sort({ createdAt: -1 }).toArray();
+                res.send(reviews);
+            } catch (err) {
+                res.status(500).send({ message: "Error fetching reviews", error: err });
+            }
+        });
+
+
+
+
+
 
         // 📌 Mark a donation as Featured
         app.patch("/api/donations/feature/:id", async (req, res) => {
