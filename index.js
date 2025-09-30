@@ -57,6 +57,7 @@ async function run() {
         const charityRequests = db.collection("charityRequests");
         const usersCollection = db.collection('users');
         const donationsCollection = db.collection("donations");
+        const paymentsCollection = db.collection("payments");
 
 
 
@@ -433,7 +434,7 @@ async function run() {
 
 
 
-
+        // Payment APIs
 
 
         app.post('/create-payment-intent', async (req, res) => {
@@ -454,6 +455,49 @@ async function run() {
             catch (error) {
                 res.status(500).json({ error: error.message })
             }
+        });
+
+
+
+        // Update payment status & save payment history
+        app.post("/api/payments", async (req, res) => {
+            try {
+                const { reqId, transactionId, amount, email } = req.body;
+
+                // Update charity request paymentStatus
+                await charityRequests.updateOne(
+                    { _id: new ObjectId(reqId) },
+                    { $set: { paymentStatus: "Paid", transactionId } }
+                );
+
+                // Save payment record
+                const payment = {
+                    reqId: new ObjectId(reqId),
+                    transactionId,
+                    amount,
+                    email,
+                    date: new Date(),
+                };
+                await paymentsCollection.insertOne(payment);
+
+                res.json({ message: "Payment successful & recorded", payment });
+            } catch (error) {
+                console.error("Error saving payment:", error);
+                res.status(500).json({ message: "Internal server error" });
+            }
+        });
+
+        // Get payment history for user
+        app.get("/api/payments/:email", async (req, res) => {
+            const email = req.params.email;
+            const payments = await paymentsCollection.find({ email }).toArray();
+            res.json(payments);
+        });
+
+        // Get all payment history (admin)
+        app.get("/api/payments", async (req, res) => {
+            const payments = await paymentsCollection.find().toArray();
+            res.json(payments);
         });
 
 
